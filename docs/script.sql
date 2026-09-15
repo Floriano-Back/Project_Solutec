@@ -1,27 +1,27 @@
 -- 1 Tabela central de usuários (para Autenticação e Login)
-CREATE TABLE usuarios (
-    id_usuario SERIAL PRIMARY KEY,
+CREATE TABLE users (
+    id_users SERIAL PRIMARY KEY,
     email VARCHAR(150) UNIQUE NOT NULL,
-    senha_hash VARCHAR(255) NOT NULL,
-    tipo_usuario VARCHAR(20) NOT NULL CHECK (tipo_usuario IN ('CLIENTE', 'TECNICO', 'FORNECEDOR', 'ADMIN')),
-    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('CLIENTE', 'TECNICO', 'FORNECEDOR', 'ADMIN')),
+    register_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2 Prrfis Especificos
-CREATE TABLE clientes (
-    id_cliente SERIAL PRIMARY KEY,
-    id_usuario INT UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    nome VARCHAR(100) NOT NULL,
+CREATE TABLE clients (
+    id_clients SERIAL PRIMARY KEY,
+    id_users INT UNIQUE REFERENCES users(id_users) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
     cpf VARCHAR(14) UNIQUE NOT NULL,
-    telefone VARCHAR(20)
+    phone VARCHAR(20)
 );
 
-CREATE TABLE tecnicos (
-    id_tecnico SERIAL PRIMARY KEY,
-    id_usuario INT UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    nome_comercial VARCHAR(100) NOT NULL,
+CREATE TABLE technicians (
+    id_technicians SERIAL PRIMARY KEY,
+    id_users INT UNIQUE REFERENCES users(id_users) ON DELETE CASCADE,
+    name_comercial VARCHAR(100) NOT NULL,
     cnpj_cpf VARCHAR(18) UNIQUE NOT NULL,
-    cidade VARCHAR(100) NOT NULL,
+    city VARCHAR(100) NOT NULL,
     descricao TEXT,
     avaliacao_media DECIMAL(3,2) DEFAULT 0.00
 );
@@ -29,7 +29,7 @@ CREATE TABLE tecnicos (
 -- 3 Especialidades dos técnicos (relação N:N)
 CREATE TABLE especialidades (
     id_especialidade SERIAL PRIMARY KEY,
-    nome VARCHAR(50) NOT NULL UNIQUE -- ex: 'iPhone', 'PS5', 'Notebook'
+    name VARCHAR(50) NOT NULL UNIQUE -- ex: 'iPhone', 'PS5', 'Notebook'
 );
 
 CREATE TABLE tecnico_especialidades (
@@ -41,7 +41,7 @@ CREATE TABLE tecnico_especialidades (
 -- 4 Serviços (Ordem de serviço entre cliente e técnico)
 CREATE TABLE servicos (
     id_servico SERIAL PRIMARY KEY,
-    id_cliente INT REFERENCES clientes(id_cliente),
+    id_cliente INT REFERENCES clients(id_cliente),
     id_tecnico INT REFERENCES tecnicos(id_tecnico),
     equipamento VARCHAR(100) NOT NULL,
     descricao_problema TEXT NOT NULL,
@@ -54,30 +54,18 @@ CREATE TABLE servicos (
 CREATE TABLE avaliacoes (
     id_avaliacao SERIAL PRIMARY KEY,
     id_servico INT UNIQUE REFERENCES servicos(id_servico),
-    id_cliente INT REFERENCES clientes(id_cliente),
+    id_cliente INT REFERENCES clients(id_cliente),
     id_tecnico INT REFERENCES tecnicos(id_tecnico),
     nota INT CHECK (nota BETWEEN 1 AND 5),
     comentario TEXT,
     data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6 Transações Financeiras (Controle de caixa do técnico)
-CREATE TABLE transacoes_financeiras (
-    id_transacao SERIAL PRIMARY KEY,
-    id_tecnico INT REFERENCES tecnicos(id_tecnico) ON DELETE CASCADE,
-    id_servico INT REFERENCES servicos(id_servico) ON DELETE SET NULL, -- Opcional: vincula a receita a um serviço
-    tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('RECEITA', 'DESPESA')),
-    descricao VARCHAR(150) NOT NULL,
-    valor DECIMAL(10,2) NOT NULL,
-    categoria VARCHAR(50), -- ex: 'Peça', 'Serviço', 'Aluguel', 'Ferramenta'
-    data_transacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- 7 Perfis de Fornecedores
 CREATE TABLE fornecedores (
     id_fornecedor SERIAL PRIMARY KEY,
     id_usuario INT UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    nome_empresa VARCHAR(100) NOT NULL,
+    name_empresa VARCHAR(100) NOT NULL,
     cnpj VARCHAR(18) UNIQUE NOT NULL,
     cidade VARCHAR(100) NOT NULL,
     telefone VARCHAR(20)
@@ -87,7 +75,7 @@ CREATE TABLE fornecedores (
 CREATE TABLE produtos (
     id_produto SERIAL PRIMARY KEY,
     id_fornecedor INT REFERENCES fornecedores(id_fornecedor) ON DELETE CASCADE,
-    nome VARCHAR(100) NOT NULL, -- ex: 'Tela OLED iPhone 11', 'Porta HDMI PS5'
+    name VARCHAR(100) NOT NULL, -- ex: 'Tela OLED iPhone 11', 'Porta HDMI PS5'
     descricao TEXT,
     preco DECIMAL(10,2) NOT NULL,
     quantidade_estoque INT DEFAULT 0
@@ -114,7 +102,6 @@ CREATE TABLE pedido_itens (
 
 -- 11 Transações Financeiras (Atualizada com Vinculos)
 -- Dropei e recriei a tabela para incluir a chave de id_pedido
-DROP TABLE IF EXISTS transacoes_financeiras;
 
 CREATE TABLE transacoes_financeiras (
     id_transacao SERIAL PRIMARY KEY,
