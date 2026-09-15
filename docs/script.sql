@@ -1,129 +1,116 @@
 -- 1 Tabela central de usuários (para Autenticação e Login)
-CREATE TABLE usuarios (
-    id_usuario SERIAL PRIMARY KEY,
+CREATE TABLE users (
+    id_user SERIAL PRIMARY KEY,
     email VARCHAR(150) UNIQUE NOT NULL,
-    senha_hash VARCHAR(255) NOT NULL,
-    tipo_usuario VARCHAR(20) NOT NULL CHECK (tipo_usuario IN ('CLIENTE', 'TECNICO', 'FORNECEDOR', 'ADMIN')),
-    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    password_hash VARCHAR(255) NOT NULL,
+    user_type VARCHAR(20) NOT NULL CHECK (user_type IN ('CLIENTE', 'TECNICO', 'FORNECEDOR', 'ADMIN')),
+    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2 Prrfis Especificos
-CREATE TABLE clientes (
-    id_cliente SERIAL PRIMARY KEY,
-    id_usuario INT UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    nome VARCHAR(100) NOT NULL,
+-- 2 Perfis Especificos
+CREATE TABLE clients (
+    id_client SERIAL PRIMARY KEY,
+    id_user INT UNIQUE REFERENCES users(id_user) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
     cpf VARCHAR(14) UNIQUE NOT NULL,
-    telefone VARCHAR(20)
+    telephone VARCHAR(20)
 );
 
-CREATE TABLE tecnicos (
-    id_tecnico SERIAL PRIMARY KEY,
-    id_usuario INT UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    nome_comercial VARCHAR(100) NOT NULL,
+CREATE TABLE technicians (
+    id_technician SERIAL PRIMARY KEY,
+    id_user INT UNIQUE REFERENCES users(id_user) ON DELETE CASCADE,
+    name_comercial VARCHAR(100) NOT NULL,
     cnpj_cpf VARCHAR(18) UNIQUE NOT NULL,
-    cidade VARCHAR(100) NOT NULL,
-    descricao TEXT,
-    avaliacao_media DECIMAL(3,2) DEFAULT 0.00
+    city VARCHAR(100) NOT NULL,
+    description TEXT,
+    average_rating DECIMAL(3,2) DEFAULT 0.00
 );
 
--- 3 Especialidades dos técnicos (relação N:N)
-CREATE TABLE especialidades (
-    id_especialidade SERIAL PRIMARY KEY,
-    nome VARCHAR(50) NOT NULL UNIQUE -- ex: 'iPhone', 'PS5', 'Notebook'
+-- 3 especialidades dos técnicos (relação N:N)
+CREATE TABLE specialties (
+    id_specialty SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE -- ex: 'iPhone', 'PS5', 'Notebook'
 );
 
-CREATE TABLE tecnico_especialidades (
-    id_tecnico INT REFERENCES tecnicos(id_tecnico) ON DELETE CASCADE,
-    id_especialidade INT REFERENCES especialidades(id_especialidade) ON DELETE CASCADE,
-    PRIMARY KEY (id_tecnico, id_especialidade)
+CREATE TABLE tecnico_specialties (
+    id_technician INT REFERENCES technicians(id_technician) ON DELETE CASCADE,
+    id_specialty INT REFERENCES specialties(id_specialty) ON DELETE CASCADE,
+    PRIMARY KEY (id_technician, id_specialty)
 );
 
 -- 4 Serviços (Ordem de serviço entre cliente e técnico)
-CREATE TABLE servicos (
-    id_servico SERIAL PRIMARY KEY,
-    id_cliente INT REFERENCES clientes(id_cliente),
-    id_tecnico INT REFERENCES tecnicos(id_tecnico),
-    equipamento VARCHAR(100) NOT NULL,
-    descricao_problema TEXT NOT NULL,
+CREATE TABLE services (
+    id_service SERIAL PRIMARY KEY,
+    id_client INT REFERENCES clients(id_client),
+    id_technician INT REFERENCES technicians(id_technician),
+    equipment VARCHAR(100) NOT NULL,
+    problem_description TEXT NOT NULL,
     status VARCHAR(30) DEFAULT 'SOLICITADO' CHECK (status IN ('SOLICITADO', 'EM_ANALISE', 'APROVADO', 'EM_REPARO', 'FINALIZADO', 'CANCELADO')),
-    valor_total DECIMAL(10,2) DEFAULT 0.00,
-    data_solicitacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    total_value DECIMAL(10,2) DEFAULT 0.00,
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 5 Avaliações
-CREATE TABLE avaliacoes (
-    id_avaliacao SERIAL PRIMARY KEY,
-    id_servico INT UNIQUE REFERENCES servicos(id_servico),
-    id_cliente INT REFERENCES clientes(id_cliente),
-    id_tecnico INT REFERENCES tecnicos(id_tecnico),
-    nota INT CHECK (nota BETWEEN 1 AND 5),
-    comentario TEXT,
-    data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE reviews (
+    id_review SERIAL PRIMARY KEY,
+    id_service INT UNIQUE REFERENCES services(id_service),
+    id_client INT REFERENCES clients(id_client),
+    id_technician INT REFERENCES technicians(id_technician),
+    score INT CHECK (score BETWEEN 1 AND 5),
+    comment TEXT,
+    evaluation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6 Transações Financeiras (Controle de caixa do técnico)
-CREATE TABLE transacoes_financeiras (
-    id_transacao SERIAL PRIMARY KEY,
-    id_tecnico INT REFERENCES tecnicos(id_tecnico) ON DELETE CASCADE,
-    id_servico INT REFERENCES servicos(id_servico) ON DELETE SET NULL, -- Opcional: vincula a receita a um serviço
-    tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('RECEITA', 'DESPESA')),
-    descricao VARCHAR(150) NOT NULL,
-    valor DECIMAL(10,2) NOT NULL,
-    categoria VARCHAR(50), -- ex: 'Peça', 'Serviço', 'Aluguel', 'Ferramenta'
-    data_transacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 7 Perfis de Fornecedores
-CREATE TABLE fornecedores (
-    id_fornecedor SERIAL PRIMARY KEY,
-    id_usuario INT UNIQUE REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    nome_empresa VARCHAR(100) NOT NULL,
+-- 6 Perfis de fornecedores (suppliers) que fornecem peças para os técnicos
+CREATE TABLE suppliers (
+    id_supplier SERIAL PRIMARY KEY,
+    id_user INT UNIQUE REFERENCES users(id_user) ON DELETE CASCADE,
+    company_name VARCHAR(100) NOT NULL,
     cnpj VARCHAR(18) UNIQUE NOT NULL,
-    cidade VARCHAR(100) NOT NULL,
-    telefone VARCHAR(20)
+    city VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20)
 );
 
--- 8 Catalogo de Produtos. peças oferecidas pelos fornecedores
-CREATE TABLE produtos (
-    id_produto SERIAL PRIMARY KEY,
-    id_fornecedor INT REFERENCES fornecedores(id_fornecedor) ON DELETE CASCADE,
-    nome VARCHAR(100) NOT NULL, -- ex: 'Tela OLED iPhone 11', 'Porta HDMI PS5'
-    descricao TEXT,
-    preco DECIMAL(10,2) NOT NULL,
-    quantidade_estoque INT DEFAULT 0
+-- 7 Catalogo de produtos. peças oferecidas pelos suppliers
+CREATE TABLE products (
+    id_product SERIAL PRIMARY KEY,
+    id_supplier INT REFERENCES suppliers(id_supplier) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL, -- ex: 'Tela OLED iPhone 11', 'Porta HDMI PS5'
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    stock_quantity INT DEFAULT 0
 );
 
--- 9 Pedidos de Compras (técnico comprando do fornecedor)
-CREATE TABLE pedidos_compra (
-    id_pedido SERIAL PRIMARY KEY,
-    id_tecnico INT REFERENCES tecnicos(id_tecnico),
-    id_fornecedor INT REFERENCES fornecedores(id_fornecedor),
+-- 8 Pedidos de Compras (técnico comprando do fornecedor)
+CREATE TABLE purchase_orders (
+    id_purchase_order SERIAL PRIMARY KEY,
+    id_technician INT REFERENCES technicians(id_technician),
+    id_supplier INT REFERENCES suppliers(id_supplier),
     status VARCHAR(30) DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE', 'PAGO', 'ENVIADO', 'ENTREGUE', 'CANCELADO')),
-    valor_total DECIMAL(10,2) NOT NULL,
-    data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    total_value DECIMAL(10,2) NOT NULL,
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10 Itens do Pedido (Relação N:N entre pedido e produto)
-CREATE TABLE pedido_itens (
-    id_pedido INT REFERENCES pedidos_compra(id_pedido) ON DELETE CASCADE,
-    id_produto INT REFERENCES produtos(id_produto),
-    quantidade INT NOT NULL CHECK (quantidade > 0),
-    preco_unitario DECIMAL(10,2) NOT NULL,
-    PRIMARY KEY (id_pedido, id_produto)
+-- 9 Itens do Pedido (Relação N:N entre pedido e produto)
+CREATE TABLE order_items (
+    id_order_item SERIAL PRIMARY KEY,
+    id_purchase_order INT REFERENCES purchase_orders(id_purchase_order) ON DELETE CASCADE,
+    id_product INT REFERENCES products(id_product),
+    quantity INT NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY (id_order_item, id_product)
 );
 
--- 11 Transações Financeiras (Atualizada com Vinculos)
--- Dropei e recriei a tabela para incluir a chave de id_pedido
-DROP TABLE IF EXISTS transacoes_financeiras;
-
-CREATE TABLE transacoes_financeiras (
-    id_transacao SERIAL PRIMARY KEY,
-    id_tecnico INT REFERENCES tecnicos(id_tecnico) ON DELETE CASCADE,
-    id_servico INT REFERENCES servicos(id_servico) ON DELETE SET NULL, -- Receita ou despesa atrelada a um serviço
-    id_pedido INT REFERENCES pedidos_compra(id_pedido) ON DELETE SET NULL, -- Despesa atrelada a um pedido de peça
+-- 10 Transações Financeiras
+CREATE TABLE financial_transactions (
+    id_transaction SERIAL PRIMARY KEY,
+    id_technician INT REFERENCES technicians(id_technician) ON DELETE CASCADE,
+    id_service INT REFERENCES services(id_service) ON DELETE SET NULL, -- Receita ou despesa atrelada a um serviço
+    id_order_item SERIAL PRIMARY KEY,
+    id_purchase_order INT REFERENCES purchase_orders(id_purchase_order) ON DELETE SET NULL, -- Despesa atrelada a um pedido de peça
     tipo VARCHAR(10) NOT NULL CHECK (tipo IN ('RECEITA', 'DESPESA')),
-    descricao VARCHAR(150) NOT NULL,
-    valor DECIMAL(10,2) NOT NULL,
-    categoria VARCHAR(50), -- ex: 'Peça', 'Serviço', 'Aluguel', 'Ferramenta'
-    data_transacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    description VARCHAR(150) NOT NULL,
+    value DECIMAL(10,2) NOT NULL,
+    category VARCHAR(50), -- ex: 'Peça', 'Serviço', 'Aluguel', 'Ferramenta'
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
